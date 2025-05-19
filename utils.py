@@ -1,4 +1,10 @@
+import socket
+import json
 from tkinter import * # write 인터페이스 구현
+
+endMessage = "##**##"
+separator = "#&#&#"   # 섹션 구분자로 사용
+directory = "./files/"
 
 def WriteContents():
     texts = []

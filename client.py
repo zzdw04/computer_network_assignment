@@ -1,8 +1,8 @@
 # 각종 예외 처리는 서버에서 구현 할듯..?
-
 import socket   # 데이터 통신을 위함
 import json     # 데이터를 넘길 때 사용
 from utils import *
+endMessage = "##**##"
 
 ip, port = input("ip:port 입력 : \n").split(":")
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
