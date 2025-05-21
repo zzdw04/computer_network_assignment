@@ -25,7 +25,7 @@ async def create(data, client_socket):
             
     client_socket.sendall(endMessage.encode())  # 끝을 알리는 메시지, 잘 처리했다는 의미
 
-async def read(data, client_socket):
+async def read(data, client_socket):    # 실제로 파일을 읽을 필요는 없을듯? 수정합시다.
     def Error(): return 0
 
     global FM
@@ -38,7 +38,7 @@ async def read(data, client_socket):
         for f in files:
             fileName = f.getname()
             client_socket.sendall(fileName.encode())
-            for idx, SecName in enumerate(f.getSection()):
+            for idx, SecName in enumerate(f.getSections()):
                 client_socket.sendall(f"\t{idx + 1}. {SecName}".encode())
 
         client_socket.sendall(endMessage.encode())  # 끝을 알리는 메시지
@@ -46,13 +46,13 @@ async def read(data, client_socket):
     # case 2, read <fileName> <sectionName>
     elif FM.duplicated(name):   # 중복된 파일 제목이 있으면
         sectionName = data["sectionNames"][0]
-        fileclass = FM.getFile(data["fileName"])
+        fileclass = FM.getFile(name)
 
         if not fileclass.sectionCheck(sectionName): Error()
 
         # 제목 및 섹션 이름
         client_socket.sendall(name.encode())
-        sectionIdx = fileclass.getSection().index(sectionName) + 1
+        sectionIdx = fileclass.getSections().index(sectionName) + 1
         client_socket.sendall(f"\t{sectionIdx}. {sectionName}".encode())
 
         # 파일 내용 보내기
@@ -67,13 +67,17 @@ async def read(data, client_socket):
     else: Error()
 
 async def write(data, client_socket):
-    pass
-    # 구현 목록
-    # lock, unlock
-    # 
-    # 됐다 안됐다 그거랑
-    # 입력 받은거 수정, 마지막에 입력의 끝을 알리는 무언가 필요
-    # offset 수정
+    global FM
+
+    fileName = data["fileName"]
+    sectionName = data["sectionNames"]
+    fileclass = FM.getFile(fileName)
+
+    if not (FM.duplicated(fileName) and\
+             fileclass.sectionCheck(sectionName)): Error()
+
+    fileclass.waitingQueue.append(client_socket)
+
 
 async def handle_client(client_socket, addr):
     while True:
@@ -90,3 +94,6 @@ async def handle_client(client_socket, addr):
                 break 
             case default:
                 print("잘못된 요청입니다.")
+
+def Error():
+    pass
