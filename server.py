@@ -12,23 +12,27 @@ host = '127.0.0.1'  # local
 port = 12345
 
 # 폴더 관련 코드들
-directory = "./files/"
 os.makedirs("files", exist_ok=True)
 FM = fileManager()
 
+async def handle_connection(reader, writer):
+    addr = writer.get_extra_info('peername')
+    print(f"{addr}에서 연결됨")
+
+    try:
+        await handle_client(reader, writer)  # 비동기 client 핸들링
+    except Exception as e:
+        print(f"에러 발생: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
 async def main():
-    # 소켓 만들기 AF_INET : ipv4, SOCK_STREAM : TCP 통신
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((host, port))
-    server_socket.listen()
+    server = await asyncio.start_server(handle_connection, host, port)
     print("서버 대기중....")
 
+    async with server:
+        await server.serve_forever()
 
-    # 이거 비동기로 만들어야 함...
-    while True:
-        client_socket, addr = server_socket.accept()
-        print(f"{addr}에서 연결됨")
-
-        handle_client(client_socket, addr)
-        client_socket.close()
+if __name__ == "__main__":
+    asyncio.run(main())

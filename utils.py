@@ -3,8 +3,7 @@ import json
 from tkinter import * # write 인터페이스 구현
 
 endMessage = "##**##"
-separator = "#&#&#"   # 섹션 구분자로 사용
-directory = "./files/"
+directory = "./files/"  
 
 def WriteContents():
     texts = []
@@ -32,27 +31,28 @@ def WriteContents():
     return texts[0]
 
 def makedata(request, query):
-     # 예외처리 할 것들
+    # 예외처리 할 것들
     
-     if request == "create":
-         fileName = query[1]
-         sectionNum = int(query[2])
-         sectionNames = query[3:]
-     elif request == "read":
-         mode = 0 if len(query) == 1 else 1
-         fileName = [None, query[1]][mode]
-         sectionNum = None
-         sectionNames = [None, query[2]][mode]
-     elif request == "write":
-         fileName = query[1]
-         sectionNum = None
-         sectionNames = query[2]
+    if request == "create":
+        fileName = query[1]
+        sectionNum = int(query[2])
+        sectionNames = query[3:]
+    elif request == "read":
+        mode = 0 if len(query) == 1 else 1
+        fileName = [None, query[1]][mode]
+        sectionNum = None
+        sectionNames = [None, query[2]][mode]
+    elif request == "write":
+        fileName = query[1]
+        sectionNum = None
+        sectionNames = query[2]
 
-     data = {
-            "request" : request,
-            "fileName" : fileName,
-            "sectionNum" : sectionNum,
-            "sectionNames" : sectionNames
-     }
+    data = {
+        "request" : request,
+        "fileName" : fileName,
+        "sectionNum" : sectionNum,
+        "sectionNames" : sectionNames
+    }
 
-     return data
+    return json.dumps(data) + "\n" 
+    # 서버에서 readline으로 메시지를 받기 때문에 개행문자 필요.
