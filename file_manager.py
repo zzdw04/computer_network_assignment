@@ -1,3 +1,6 @@
+import sys
+sys.dont_write_bytecode = True
+
 import asyncio
 from utils import *
 
@@ -27,13 +30,15 @@ class file:
         self.__name = name   
         self.__sectionNum = sectionNum
         self.__sectionNames = sectionNames
-        self.waitingQueue = dict()
+        self.writeMessageQueue = dict()     # write할 메세지
+        self.waitingClientQueue = dict()    # 기다리는 클라이언트
         self.locks = dict() 
         self.__content = dict()
         self.__commited_content = dict()    # read는 오직 여기서만 데이터를 받음
         # 섹션 인덱스가 필요할까...? 진짜모름
         for name in self.__sectionNames:
-            self.waitingQueue[name] = asyncio.Queue()
+            self.writeMessageQueue[name] = asyncio.Queue()
+            self.waitingClientQueue[name] = asyncio.Queue()
             self.locks[name] = asyncio.Lock()
             self.__content[name] = []
             self.__commited_content[name] = []
@@ -64,32 +69,32 @@ class file:
     def getContents(self, section):  # 확정된 내용을 보냄
         return self.__commited_content[section] + [] # 이러면 새로운 객체가 복사되어 리턴
 
-    def startProcessing(self): # 파일 객체를 만들 때 같이 돌릴듯 한데... 생성자로 넣는게 맞으려나. 
+    def startProcessing(self): # 파일 객체를 만들 때 한 번 수행
         for section in self.getSections():
-            asyncio.create_task(self.write_loop(section))
+            asyncio.create_task(self.writeLoop(section))
 
     async def writeLoop(self, section):    # 큐에 들어오면 작업을 실행할 곳
         while True:
-
-            if self.waitingQueue[section]:
-                nowTask = self.waitingQueue[section].popleft()
+            writer, reader = await self.waitingClientQueue[section].get()
 
             async with self.locks[section]:
-                if self.waitingQueue[section]:
-                    new_contents = []
-                    while True:
+                writer.write(proceedMessage.encode())   # 클라이언트에게 권한 부여 됐다는 메시지
+                await writer.drain()
+
+                newContents = []
+                while True:
+                    newContent = await self.writeMessageQueue[section].get()
+                    if newContent == endMessage:
                         break
-                        # endmessage가 올 때까지
-                        # new_contents에 append 탭 한 번 해서!!
-                    
-                    self.__fixContent(section, new_contents)
-                    self.__confirmContent(section)
-                    
-                    # 실제 파일에 작성
-                    with open(f"{directory}{self.__name}/{section}.txt", 'w', encoding="utf-8") as f:
-                        f.writelines(self.__commited_content)
+                    newContents.append(f"\t{newContent}")
+                
+                self.__fixContent(section, newContents)
+                self.__confirmContent(section)
+                
+                # 실제 파일에 작성
+                with open(f"{directory}{self.__name}/{section}.txt", 'w', encoding="utf-8") as f:
+                    f.writelines(self.__commited_content)
 
 
-                    # 락을 풀기
-
-            # 잘 처리했다는 내용 전송
+                writer.write(committedMessage.encode())
+                await writer.drain()

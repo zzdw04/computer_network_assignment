@@ -1,9 +1,10 @@
 import asyncio
 import os
+import utils
 
 from file_manager import *
 from request_handler import *
-from utils import *
+
 
 # 각종 예외상황 에러 등 생각해서 구현 해야 함!!
 
@@ -13,7 +14,8 @@ port = 12345
 
 # 폴더 관련 코드들
 os.makedirs("files", exist_ok=True)
-FM = fileManager()
+utils.FM = None
+utils.FM = fileManager()
 
 async def handle_connection(reader, writer):
     addr = writer.get_extra_info('peername')
