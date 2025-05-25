@@ -86,15 +86,14 @@ class file:
                     newContent = await self.writeMessageQueue[section].get()
                     if newContent == endMessage:
                         break
-                    newContents.append(f"\t{newContent}")
+                    newContents.append(f"{newContent}\n")
                 
                 self.__fixContent(section, newContents)
                 self.__confirmContent(section)
                 
                 # 실제 파일에 작성
                 with open(f"{directory}{self.__name}/{section}.txt", 'w', encoding="utf-8") as f:
-                    f.writelines(self.__commited_content)
-
+                    f.writelines(self.__commited_content[section])
 
                 writer.write(committedMessage.encode())
                 await writer.drain()

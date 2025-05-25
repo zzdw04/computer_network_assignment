@@ -37,9 +37,10 @@ while True:
     elif request == "read":
         mode = 0 if len(query) == 1 else 1  # 0이면 파일 목록, 1이면 섹션
         client_socket.sendall(makedata(request, query))
+        sock_file = client_socket.makefile("r", encoding="utf-8") # 줄 단위로 읽기 위해, 소켓을 파일처럼 읽을 수 있도록 하는 것
 
         while True: 
-            recv_data = client_socket.recv(1024).decode()    # 데이터 받음
+            recv_data = sock_file.readline().rstrip()   # 데이터 받음
             if recv_data == endMessage:
                 break
             print(recv_data)
@@ -54,6 +55,7 @@ while True:
 
         data = client_socket.recv(1024).decode().strip()
         if data == waitMessage:
+            print("누군가가 해당 섹션에 작성중...")
             while client_socket.recv(1024).decode().strip() != proceedMessage:
                 time.sleep(0.01)
 

@@ -45,43 +45,55 @@ async def read(data, writer: asyncio.StreamWriter):    # 딕셔너리에 있는 
     # case 1, read
     if name == None:
         files = utils.FM.getFileInfo()    # 파일 객체들을 가져와서
-        # 파일별로 이름과 섹션들을 받아서 보내준다. 어차피 write가 되어도 여긴 안바뀜 
+        # 파일별로 이름과 섹션들을 받아서 보내준다. 어차피 write가 되어도 여긴 안바뀜
+        writer.write(f"{utils.startEndSymbol}\n".encode())
+        await writer.drain()
+
         for f in files:
             fileName = f.getName()
 
-            writer.write(fileName.encode())
+            writer.write(f"{fileName}\n".encode())
             await writer.drain()
 
             for idx, SecName in enumerate(f.getSections()):
-                writer.write(f"\t{idx + 1}. {SecName}".encode())
+                writer.write(f"\t{idx + 1}. {SecName}\n".encode())
                 await writer.drain()
 
-        writer.write(utils.endMessage.encode())  # 끝을 알리는 메시지
+        writer.write(f"{utils.startEndSymbol}\n".encode())
+        await writer.drain()
+
+        writer.write(f"{utils.endMessage}\n".encode())  # 끝을 알리는 메시지
         await writer.drain()
 
     # case 2, read <fileName> <sectionName>
     elif utils.FM.duplicated(name):   # 중복된 파일 제목이 있으면 실행
-        sectionName = data["sectionNames"][0]
+        sectionName = data["sectionNames"]
         fileclass = utils.FM.getFile(name)
 
-        if not fileclass.sectionCheck(sectionName): await Error(writer, "존재하지 않는 섹션 이름름")
+        if not fileclass.sectionCheck(sectionName): await Error(writer, "존재하지 않는 섹션 이름")
 
         # 제목 및 섹션 이름
-        writer.write(name.encode())
+        writer.write(f"{utils.startEndSymbol}\n".encode())
+        await writer.drain()
+
+        writer.write(f"{name}\n".encode())
         await writer.drain()
         sectionIdx = fileclass.getSections().index(sectionName) + 1
 
-        writer.write(f"\t{sectionIdx}. {sectionName}".encode())
+        writer.write(f"\t{sectionIdx}. {sectionName}\n".encode())
         await writer.drain()
 
         # 파일 내용 보내기
         lines = fileclass.getContents(sectionName) # 확정된 내용을 받아서 보냄
 
         for line in lines:
-            writer.write("\t" + line.encode())
+            writer.write(f"\t\t{line}".encode())
             await writer.drain()
 
-        writer.write(utils.endMessage.encode())  # 끝을 알리는 메시지
+        writer.write(f"{utils.startEndSymbol}\n".encode())
+        await writer.drain()
+
+        writer.write(f"{utils.endMessage}\n".encode())  # 끝을 알리는 메시지
         await writer.drain()
 
     else: await Error(writer, "잘못된 요청")
@@ -104,6 +116,7 @@ async def pushContent(data):
     fileName = data["fileName"]
     sectionName = data["sectionNames"]
     fileclass = utils.FM.getFile(fileName)
+    print(data["content"])
     await fileclass.writeMessageQueue[sectionName].put(data["content"])
     print("잘 들어갔음!")
 
@@ -116,7 +129,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         request_data = json.loads((await reader.readline()).decode().strip())
         request = request_data["request"]
         print("데이터 수신!")
-
+        print(request_data)
         match request:
             case "create":
                 task = asyncio.create_task(create(request_data, writer))

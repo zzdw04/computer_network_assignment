@@ -2,11 +2,12 @@ import socket
 import json
 from tkinter import * # write 인터페이스 구현
 
-endMessage = "##**##"
+endMessage = "END!"
 directory = "./files/"  
 waitMessage = "Waiting..."
 proceedMessage = "PROCEED"
 committedMessage = "COMMITTED"
+startEndSymbol = "------------------------------"
 FM = None
 
 def debug():
@@ -39,30 +40,35 @@ def WriteContents():
 
 def makedata(request, query, content = None):
     # 예외처리 할 것들
-    
-    if request == "create":
-        fileName = query[1]
-        sectionNum = int(query[2])
-        sectionNames = query[3:]
+    while True:
+        try:
+            if request == "create":
+                fileName = query[1]
+                sectionNum = int(query[2])
+                sectionNames = query[3:]
 
-    elif request == "read":
-        mode = 0 if len(query) == 1 else 1
-        fileName = [None, query[1]][mode]
-        sectionNames = [None, query[2]][mode]
-        sectionNum = None
-    elif request == "write" or request == "content":
-        fileName = query[1]
-        sectionNames = query[2]
-        sectionNum = None
-    elif request == "bye" or request == "alert":
-        fileName, sectionNum, sectionNames = None, None, None
-    data = {
-        "request" : request,
-        "fileName" : fileName,
-        "sectionNum" : sectionNum,
-        "sectionNames" : sectionNames,
-        "content" : content
-    }
+            elif request == "read":
+                mode = 0 if len(query) == 1 else 1
+                fileName = None if mode == 0 else query[1]
+                sectionNames = None if mode == 0 else query[2]
+                sectionNum = None
+            elif request == "write" or request == "content":
+                fileName = query[1]
+                sectionNames = query[2]
+                sectionNum = None
+            elif request == "bye" or request == "alert":
+                fileName, sectionNum, sectionNames = None, None, None
+            data = {
+                "request" : request,
+                "fileName" : fileName,
+                "sectionNum" : sectionNum,
+                "sectionNames" : sectionNames,
+                "content" : content
+            }
 
-    return (json.dumps(data) + "\n").encode()
+            return (json.dumps(data) + "\n").encode()
+        except:
+            print("잘못된 입력!")
+            query = input().split()
+            request = query[0]
     # 서버에서 readline으로 메시지를 받기 때문에 개행문자 필요.
