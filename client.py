@@ -35,7 +35,6 @@ while True:
 
     # read 또는 read <d_title> <s_title>
     elif request == "read":
-        mode = 0 if len(query) == 1 else 1  # 0이면 파일 목록, 1이면 섹션
         client_socket.sendall(makedata(request, query))
         sock_file = client_socket.makefile("r", encoding="utf-8") # 줄 단위로 읽기 위해, 소켓을 파일처럼 읽을 수 있도록 하는 것
 
