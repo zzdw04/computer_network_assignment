@@ -5,9 +5,6 @@ import utils
 from file_manager import *
 from request_handler import *
 
-
-# 각종 예외상황 에러 등 생각해서 구현 해야 함!!
-
 # 서버 설정
 host = '127.0.0.1'  # local
 port = 12345

@@ -11,7 +11,7 @@ startEndSymbol = "------------------------------"
 FM = None
 
 def debug():
-     print("여기까지 오나?")
+     print("여기까지 실행")
 
 def WriteContents():
     texts = []
@@ -39,7 +39,6 @@ def WriteContents():
     return texts[0]
 
 def makedata(request, query, content = None):
-    # 예외처리 할 것들
     while True:
         try:
             if request == "create":
@@ -67,8 +66,12 @@ def makedata(request, query, content = None):
             }
 
             return (json.dumps(data) + "\n").encode()
+            # 서버에서 readline으로 메시지를 받기 때문에 개행문자 필요.
         except:
             print("잘못된 입력!")
             query = input().split()
             request = query[0]
-    # 서버에서 readline으로 메시지를 받기 때문에 개행문자 필요.
+
+def checkByte(string):
+     maxbyte = 64
+     return len(string('utf-8')) > 64

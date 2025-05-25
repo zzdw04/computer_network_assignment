@@ -13,8 +13,10 @@ async def create(data, writer: asyncio.StreamWriter):
     sectionNum = data["sectionNum"]
     sectionNames = data["sectionNames"]
 
+    if sectionNum > 10:
+        return await Error(writer, "셕션의 개수가 10개 초과")
     if len(sectionNames) != sectionNum:
-        return await Error(writer, "섹션 개수와 이름 수가 맞지 않음!") # 이름의 개수와 설정한 섹션 개수의 불일치
+        return await Error(writer, "섹션 개수와 이름 수가 맞지 않음") # 이름의 개수와 설정한 섹션 개수의 불일치
 
     if utils.FM.duplicated(name):
         print("이름 중복!")
@@ -28,7 +30,7 @@ async def create(data, writer: asyncio.StreamWriter):
         with open(f"{directory}{name}/{secName}.txt", 'w', encoding="utf-8") as f:
             f.write("")
     
-    print(f"{writer.get_extra_info('peername')}의 create 명령 완료.")
+    print(f"{writer.get_extra_info('peername')}의 create 명령 완료")
     writer.write(utils.committedMessage.encode())  # 잘 처리했다는 의미
     await writer.drain()
 
@@ -96,7 +98,7 @@ async def read(data, writer: asyncio.StreamWriter):    # 딕셔너리에 있는 
         writer.write(f"{utils.endMessage}\n".encode())  # 끝을 알리는 메시지
         await writer.drain()
 
-    else: await Error(writer, "잘못된 요청")
+    else: await Error(writer, "존재하지 않는 파일 이름")
 
 async def write(data, writer: asyncio.StreamWriter, reader: asyncio.StreamReader):
     print("write 들어왔다!")
@@ -105,7 +107,7 @@ async def write(data, writer: asyncio.StreamWriter, reader: asyncio.StreamReader
     fileclass = utils.FM.getFile(fileName)
 
     if not (utils.FM.duplicated(fileName) and\
-             fileclass.sectionCheck(sectionName)): await Error(writer, "잘못된 요청")
+             fileclass.sectionCheck(sectionName)): await Error(writer, "존재하지 않는 파일 또는 섹션")
     
     if fileclass.locks[sectionName].locked():   # 잠겨있을 경우 (누가 사용중인 경우)
         writer.write(waitMessage.encode())
