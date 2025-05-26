@@ -2,21 +2,21 @@ import socket
 import json
 from tkinter import * # write 인터페이스 구현
 
-endMessage = "END!"
-directory = "./files/"  
+endMessage = "END!" 
 waitMessage = "Waiting..."
 proceedMessage = "PROCEED"
 committedMessage = "COMMITTED"
 startEndSymbol = "------------------------------"
 lineLimit = 10
 byteLimit = 64
+directory = None
 FM = None
 
-class ValueError(Exception):
-    print("한 개 이상의 섹션을 입력하여야 합니다.")
+class valueError(Exception):
+    def __str__(self): return "한 개 이상의 섹션을 입력하여야 합니다."
 
 class ByteExceedError(Exception):
-    print("64바이트 초과")
+    def __str__(self): return "64바이트 초과"
 
 def debug():
      print("여기까지 실행")
@@ -46,51 +46,57 @@ def WriteContents():
     window.mainloop()
     return texts[0]
 
-def makedata(request, query, content = None):
-    while True:
-        try:
-            if request == "create":
-                fileName = query[1]
-                sectionNum = int(query[2])
-                sectionNames = query[3:]
+def makedata(requestType, request, content = None):
+    try:
+        if requestType == "create":
+            fileName = request[1]
+            sectionNum = int(request[2])
+            sectionNames = request[3:]
+    
+            if sectionNum == 0 or sectionNames == []:
+                raise valueError()
+            if not (checkByte(fileName) and checkByte(sectionNames)):
+                raise ByteExceedError()
 
-                if sectionNum == 0 or sectionNames == []:
-                    raise ValueError
-                if not (checkByte(fileName) and checkByte(sectionNames)):
-                    raise ByteExceedError
 
-            elif request == "read":
-                mode = 0 if len(query) == 1 else 1
-                fileName = None if mode == 0 else query[1]
-                sectionNames = None if mode == 0 else query[2]
-                sectionNum = None
+        elif requestType == "read":
+            mode = 0 if len(request) == 1 else 1
+            fileName = None if mode == 0 else request[1]
+            sectionNames = None if mode == 0 else request[2]
+            sectionNum = None
 
-            elif request == "write" or request == "content":
-                fileName = query[1]
-                sectionNames = query[2]
-                sectionNum = None
+        elif requestType == "write" or requestType == "content":
+            fileName = request[1]
+            sectionNames = request[2]
+            sectionNum = None
 
-            elif request == "bye" or request == "alert":
-                fileName, sectionNum, sectionNames = None, None, None
+        elif requestType == "bye" or requestType == "alert":
+            fileName, sectionNum, sectionNames = None, None, None
 
-            data = {
-                "request" : request,
-                "fileName" : fileName,
-                "sectionNum" : sectionNum,
-                "sectionNames" : sectionNames,
-                "content" : content
-            }
-
-            return (json.dumps(data) + "\n").encode()
-            # 서버에서 readline으로 메시지를 받기 때문에 개행문자 필요.
-        except:
-            print("잘못된 입력!")
-            query = input().split()
-            request = query[0]
-
+        data = {
+            "requestType" : requestType,
+            "fileName" : fileName,
+            "sectionNum" : sectionNum,
+            "sectionNames" : sectionNames,
+            "content" : content
+        }
+        return (json.dumps(data) + "\n").encode()
+        # 서버에서 readline으로 메시지를 받기 때문에 개행문자 필요.
+    except Exception as e:
+        print(f"잘못된 입력! : {e}")
+        return None
+    
 def checkByte(string):
-    maxbyte = 64
     if isinstance(string, str):
-        return len(string('utf-8')) > byteLimit
+        return len(string) < byteLimit
     elif isinstance(string, list):
-        return all( len(x('utf-8')) > byteLimit for x in string)
+        return all( len(x) < byteLimit for x in string)
+    
+def readConfig(data, path = "./files/config.txt"):
+    with open(path, 'r', encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("#"): continue
+            line = line.strip()
+            key, value = line.split('=')
+            if key.strip() == data:
+                return value.strip()

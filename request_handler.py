@@ -1,12 +1,12 @@
-import sys
-sys.dont_write_bytecode = True
-
 import asyncio
 import os
-
-from file_manager import *
 import utils
+import json
+from file_manager import *
 from utils import debug
+
+connectedClient = 0
+connected = False
 
 async def create(data, writer: asyncio.StreamWriter): 
     name = data["fileName"]
@@ -17,7 +17,6 @@ async def create(data, writer: asyncio.StreamWriter):
         return await Error(writer, "셕션의 개수가 10개 초과")
     if len(sectionNames) != sectionNum:
         return await Error(writer, "섹션 개수와 이름 수가 맞지 않음") # 이름의 개수와 설정한 섹션 개수의 불일치
-
     if utils.FM.duplicated(name):
         print("이름 중복!")
         return await Error(writer, "이름 중복!") # 이름 중복
@@ -27,10 +26,10 @@ async def create(data, writer: asyncio.StreamWriter):
     utils.FM.getFile(name).startProcessing()
 
     for idx, secName in enumerate(sectionNames):
-        with open(f"{directory}{name}/{secName}.txt", 'w', encoding="utf-8") as f:
+        with open(f"{utils.directory}{name}/{secName}.txt", 'w', encoding="utf-8") as f:
             f.write("")
-    
-    print(f"{writer.get_extra_info('peername')}의 create 명령 완료")
+
+    print(f"{writer.get_extra_info('peername')}의 create 요청 완료")
     writer.write(utils.committedMessage.encode())  # 잘 처리했다는 의미
     await writer.drain()
 
@@ -40,8 +39,6 @@ async def read(data, writer: asyncio.StreamWriter):    # 딕셔너리에 있는 
     # 읽는 중에 파일 변경 요청이 오면 처리하기 까다로움
     # 메모리 관점에선 좋긴 한데, 다양한 문제가 생기고 구조가 복잡해질듯
     # 그냥 시간과 메모리를 trade off, 서버는 고성능이라 메모리가 충분하다고 생각합니다
-    print("read 들어왔다!")
-
     name = data["fileName"]
 
     # case 1, read
@@ -72,7 +69,9 @@ async def read(data, writer: asyncio.StreamWriter):    # 딕셔너리에 있는 
         sectionName = data["sectionNames"]
         fileclass = utils.FM.getFile(name)
 
-        if not fileclass.sectionCheck(sectionName): await Error(writer, "존재하지 않는 섹션 이름")
+        if not fileclass.sectionCheck(sectionName): 
+            await Error(writer, "존재하지 않는 섹션 이름\n")
+            return
 
         # 제목 및 섹션 이름
         writer.write(f"{utils.startEndSymbol}\n".encode())
@@ -98,19 +97,24 @@ async def read(data, writer: asyncio.StreamWriter):    # 딕셔너리에 있는 
         writer.write(f"{utils.endMessage}\n".encode())  # 끝을 알리는 메시지
         await writer.drain()
 
-    else: await Error(writer, "존재하지 않는 파일 이름")
+    else: 
+        await Error(writer, "존재하지 않는 파일 이름\n")
+        return
+    
+    print(f"{writer.get_extra_info('peername')}의 read 요청 완료")
 
 async def write(data, writer: asyncio.StreamWriter, reader: asyncio.StreamReader):
-    print("write 들어왔다!")
     fileName = data["fileName"]
     sectionName = data["sectionNames"]
     fileclass = utils.FM.getFile(fileName)
 
     if not (utils.FM.duplicated(fileName) and\
-             fileclass.sectionCheck(sectionName)): await Error(writer, "존재하지 않는 파일 또는 섹션")
-    
+            fileclass.sectionCheck(sectionName)): 
+            await Error(writer, "존재하지 않는 파일 또는 섹션")
+            return
+
     if fileclass.locks[sectionName].locked():   # 잠겨있을 경우 (누가 사용중인 경우)
-        writer.write(waitMessage.encode())
+        writer.write(utils.waitMessage.encode())
         await writer.drain()
     await fileclass.waitingClientQueue[sectionName].put((writer, reader))
 
@@ -120,41 +124,37 @@ async def pushContent(data):
     fileclass = utils.FM.getFile(fileName)
     print(data["content"])
     await fileclass.writeMessageQueue[sectionName].put(data["content"])
-    print("잘 들어갔음!")
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-    # # Nagle 알고리즘이 TCP 전송 단위를 합치지 않게 하도록
-    # sock = writer.get_extra_info('socket')
-    # sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-    while True:
-        request_data = json.loads((await reader.readline()).decode().strip())
-        request = request_data["request"]
-        print("데이터 수신!")
-        print(request_data)
-        match request:
-            case "create":
-                task = asyncio.create_task(create(request_data, writer))
-            case "read":
-                task = asyncio.create_task(read(request_data, writer))
-            case "write":
-                task = asyncio.create_task(write(request_data, writer, reader))
-            case "content":
-                task = asyncio.create_task(pushContent(request_data))
-            case "alert":
-                pass
-            case "bye":
-                addr = writer.get_extra_info('peername')
-                writer.write("CloseACK".encode())
-                await writer.drain()
-                writer.close()
-                print(f"{addr}에서 연결 종료 됨")
-                await writer.wait_closed()
-                break 
-            case default:
-                await Error(writer, "잘못된 요청")
-
-async def Error(writer: asyncio.StreamWriter, message):
-    print(f"에러! : {message}")
+    try:
+        while True:
+            request_data = json.loads((await reader.readline()).decode().strip())
+            request = request_data["requestType"]
+            print(f"{writer.get_extra_info('peername')}의 데이터 수신!")
+            # print(request_data)
+            match request:
+                case "create":
+                    task = asyncio.create_task(create(request_data, writer))
+                case "read":
+                    task = asyncio.create_task(read(request_data, writer))
+                case "write":
+                    task = asyncio.create_task(write(request_data, writer, reader))
+                case "content":
+                    task = asyncio.create_task(pushContent(request_data))
+                case "bye":
+                    addr = writer.get_extra_info('peername')
+                    writer.write("CloseACK".encode())
+                    await writer.drain()
+                    writer.close()
+                    print(f"{addr}에서 연결 종료 됨")
+                    await writer.wait_closed()
+                    break 
+                case default:
+                    await Error(writer, "잘못된 요청")
+    except Exception as e:
+        print(f"에러 발생 : {e}")
+        
+async def Error(writer: asyncio.StreamWriter, message): # 에러 메시지 보내기
+    print(f"{writer.get_extra_info('peername')}의 요청에서 에러 발생 : {message}")
     writer.write(f"에러! : {message}".encode())
     await writer.drain()

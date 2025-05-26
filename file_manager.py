@@ -1,10 +1,7 @@
-import sys
-sys.dont_write_bytecode = True
-
 import asyncio
-from utils import *
+import utils
 
-class fileManager: # 파일 최대 10개, 제목 및 섹션의 제목 최대 64바이트 섹션 내용 최대 10줄, 각 줄은 최대 64바이트 
+class fileManager: # 섹션의 개수 최대 10 개, 제목 및 섹션의 제목 최대 64바이트 섹션 내용 최대 10줄, 각 줄은 최대 64바이트 
     def __init__(self):
         self.__fileNum = 0
         self.__fileNames = set()
@@ -19,12 +16,11 @@ class fileManager: # 파일 최대 10개, 제목 및 섹션의 제목 최대 64�
         return False
     def getFileInfo(self):
         return self.__files
-    def getFile(self, name):    # 최대 파일 10개라서 선형탐색 okay 
+    def getFile(self, name):
         for file in self.__files:
             if file.getName() == name: return file
     
 class file:
-    # 섹션 구분 : #&#&# section #&#&#
     # 사실 두 섹션 이름이 같아도 안됨
     def __init__(self, name,sectionNum, sectionNames):  # 초기화
         self.__name = name   
@@ -35,7 +31,7 @@ class file:
         self.locks = dict() 
         self.__content = dict()
         self.__commited_content = dict()    # read는 오직 여기서만 데이터를 받음
-        # 섹션 인덱스가 필요할까...? 진짜모름
+
         for name in self.__sectionNames:
             self.writeMessageQueue[name] = asyncio.Queue()
             self.waitingClientQueue[name] = asyncio.Queue()
@@ -78,13 +74,13 @@ class file:
             writer, reader = await self.waitingClientQueue[section].get()
 
             async with self.locks[section]:
-                writer.write(proceedMessage.encode())   # 클라이언트에게 권한 부여 됐다는 메시지
+                writer.write(utils.proceedMessage.encode())   # 클라이언트에게 권한 부여 됐다는 메시지
                 await writer.drain()
 
                 newContents = []
                 while True:
                     newContent = await self.writeMessageQueue[section].get()
-                    if newContent == endMessage:
+                    if newContent == utils.endMessage:
                         break
                     newContents.append(f"{newContent}\n")
                 
@@ -92,8 +88,10 @@ class file:
                 self.__confirmContent(section)
                 
                 # 실제 파일에 작성
-                with open(f"{directory}{self.__name}/{section}.txt", 'w', encoding="utf-8") as f:
+                with open(f"{utils.directory}{self.__name}/{section}.txt", 'w', encoding="utf-8") as f:
                     f.writelines(self.__commited_content[section])
 
-                writer.write(committedMessage.encode())
+                writer.write(utils.committedMessage.encode())
                 await writer.drain()
+
+            print(f"{writer.get_extra_info('peername')}의 write 요청 완료")
