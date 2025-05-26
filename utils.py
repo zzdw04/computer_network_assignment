@@ -8,7 +8,15 @@ waitMessage = "Waiting..."
 proceedMessage = "PROCEED"
 committedMessage = "COMMITTED"
 startEndSymbol = "------------------------------"
+lineLimit = 10
+byteLimit = 64
 FM = None
+
+class ValueError(Exception):
+    print("한 개 이상의 섹션을 입력하여야 합니다.")
+
+class ByteExceedError(Exception):
+    print("64바이트 초과")
 
 def debug():
      print("여기까지 실행")
@@ -46,17 +54,25 @@ def makedata(request, query, content = None):
                 sectionNum = int(query[2])
                 sectionNames = query[3:]
 
+                if sectionNum == 0 or sectionNames == []:
+                    raise ValueError
+                if not (checkByte(fileName) and checkByte(sectionNames)):
+                    raise ByteExceedError
+
             elif request == "read":
                 mode = 0 if len(query) == 1 else 1
                 fileName = None if mode == 0 else query[1]
                 sectionNames = None if mode == 0 else query[2]
                 sectionNum = None
+
             elif request == "write" or request == "content":
                 fileName = query[1]
                 sectionNames = query[2]
                 sectionNum = None
+
             elif request == "bye" or request == "alert":
                 fileName, sectionNum, sectionNames = None, None, None
+
             data = {
                 "request" : request,
                 "fileName" : fileName,
@@ -73,5 +89,8 @@ def makedata(request, query, content = None):
             request = query[0]
 
 def checkByte(string):
-     maxbyte = 64
-     return len(string('utf-8')) > 64
+    maxbyte = 64
+    if isinstance(string, str):
+        return len(string('utf-8')) > byteLimit
+    elif isinstance(string, list):
+        return all( len(x('utf-8')) > byteLimit for x in string)

@@ -59,11 +59,24 @@ while True:
                 time.sleep(0.01)
 
         # 권한 okay면
-        text = WriteContents()
+        while True:
+            texts = WriteContents()
 
-        for sentence in text:
+            if len(texts) > lineLimit:  # 줄 제한. default = 10
+                print(f"입력 제한{lineLimit}줄을 초과하였습니다. 내용을 다시 입력 해주세요.")
+                continue
+            
+            if not checkByte(texts):    # byte 제한. default = 64
+                print(f"입력 제한{byteLimit}byte를 초과한 줄이 있습니다. 내용을 다시 입력 해주세요.")
+                continue
+            
+            break
+
+        for sentence in texts:
             client_socket.sendall(makedata("content", query, sentence))
         client_socket.sendall(makedata("content", query, endMessage))
+
+
 
         print("모든 데이터를 보냈다!")
         message = client_socket.recv(1024).decode()
