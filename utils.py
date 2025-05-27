@@ -92,7 +92,7 @@ def checkByte(string):
     elif isinstance(string, list):
         return all( len(x.encode()) < byteLimit for x in string)
     
-def readConfig(data, path = "./files/config.txt"):
+def readConfig(data, path = "./config.txt"):
     with open(path, 'r', encoding="utf-8") as f:
         for line in f:
             if line.startswith("#"): continue
