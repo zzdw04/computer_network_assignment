@@ -62,7 +62,7 @@ def makedata(requestType, request, content = None):
         elif requestType == "read":
             mode = 0 if len(request) == 1 else 1
             fileName = None if mode == 0 else request[1]
-            sectionNames = None if mode == 0 else request[2]
+            sectionNames = None if mode == 0 else request[2:]
             sectionNum = None
 
         elif requestType == "write" or requestType == "content":
