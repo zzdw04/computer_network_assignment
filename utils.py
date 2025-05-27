@@ -70,7 +70,7 @@ def makedata(requestType, request, content = None):
             sectionNames = request[2]
             sectionNum = None
 
-        elif requestType == "bye" or requestType == "alert":
+        elif requestType == "bye":
             fileName, sectionNum, sectionNames = None, None, None
 
         data = {
