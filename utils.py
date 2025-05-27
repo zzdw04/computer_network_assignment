@@ -16,7 +16,7 @@ class valueError(Exception):
     def __str__(self): return "한 개 이상의 섹션을 입력하여야 합니다."
 
 class ByteExceedError(Exception):
-    def __str__(self): return "64바이트 초과"
+    def __str__(self): return "무언가 64바이트 초과"
 
 def debug():
      print("여기까지 실행")
@@ -88,9 +88,9 @@ def makedata(requestType, request, content = None):
     
 def checkByte(string):
     if isinstance(string, str):
-        return len(string) < byteLimit
+        return len(string.encode()) < byteLimit
     elif isinstance(string, list):
-        return all( len(x) < byteLimit for x in string)
+        return all( len(x.encode()) < byteLimit for x in string)
     
 def readConfig(data, path = "./files/config.txt"):
     with open(path, 'r', encoding="utf-8") as f:

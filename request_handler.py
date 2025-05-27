@@ -155,6 +155,6 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         print(f"에러 발생 : {e}")
         
 async def Error(writer: asyncio.StreamWriter, message): # 에러 메시지 보내기
-    print(f"{writer.get_extra_info('peername')}의 요청에서 에러 발생 : {message}")
+    print(f"{writer.get_extra_info('peername')}의 요청에서 에러 발생 : {message.rstrip()}")
     writer.write(f"에러! : {message}".encode())
     await writer.drain()
