@@ -69,6 +69,10 @@ async def read(data, writer: asyncio.StreamWriter):    # 딕셔너리에 있는 
         sectionName = data["sectionNames"]
         fileclass = utils.FM.getFile(name)
 
+        if len(sectionName) != 1:
+            await Error(writer, "잘못된 섹션 이름 형식\n")
+            return
+        sectionName = sectionName[0]
         if not fileclass.sectionCheck(sectionName): 
             await Error(writer, "존재하지 않는 섹션 이름\n")
             return
