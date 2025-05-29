@@ -100,3 +100,8 @@ def readConfig(data, path = "./config.txt"):
             key, value = line.split('=')
             if key.strip() == data:
                 return value.strip()
+            
+def checkSectionNames(names):
+    lenght = len(names)
+    if lenght == len(set(names)): return True
+    else : return False

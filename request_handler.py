@@ -20,7 +20,10 @@ async def create(data, writer: asyncio.StreamWriter):
     if utils.FM.duplicated(name):
         print("이름 중복!")
         return await Error(writer, "이름 중복!") # 이름 중복
-
+    if not utils.checkSectionNames(sectionNames):
+        print("섹션 이름 중복!")
+        return await Error(writer, "섹션 이름 중복!")
+ 
     os.makedirs("./files/"+name, exist_ok=True)
     utils.FM.fileAdd(file(name, sectionNum, sectionNames))
     utils.FM.getFile(name).startProcessing()
